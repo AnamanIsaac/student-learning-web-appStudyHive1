@@ -8,19 +8,38 @@ if(isset($_COOKIE['user_id'])){
    $user_id = '';
 }
 
-$select_likes = $conn->prepare("SELECT * FROM `likes` WHERE user_id = ?");
-$select_likes->execute([$user_id]);
-$total_likes = $select_likes->rowCount();
+if(isset($_POST['tutor_fetch'])){
 
-$select_comments = $conn->prepare("SELECT * FROM `comments` WHERE user_id = ?");
-$select_comments->execute([$user_id]);
-$total_comments = $select_comments->rowCount();
+   $tutor_email = $_POST['tutor_email'];
+   $tutor_email = filter_var($tutor_email, FILTER_SANITIZE_STRING);
+   $select_tutor = $conn->prepare('SELECT * FROM `tutors` WHERE email = ?');
+   $select_tutor->execute([$tutor_email]);
 
-$select_bookmark = $conn->prepare("SELECT * FROM `bookmark` WHERE user_id = ?");
-$select_bookmark->execute([$user_id]);
-$total_bookmarked = $select_bookmark->rowCount();
+   $fetch_tutor = $select_tutor->fetch(PDO::FETCH_ASSOC);
+   $tutor_id = $fetch_tutor['id'];
+
+   $count_playlists = $conn->prepare("SELECT * FROM `playlist` WHERE tutor_id = ?");
+   $count_playlists->execute([$tutor_id]);
+   $total_playlists = $count_playlists->rowCount();
+
+   $count_contents = $conn->prepare("SELECT * FROM `content` WHERE tutor_id = ?");
+   $count_contents->execute([$tutor_id]);
+   $total_contents = $count_contents->rowCount();
+
+   $count_likes = $conn->prepare("SELECT * FROM `likes` WHERE tutor_id = ?");
+   $count_likes->execute([$tutor_id]);
+   $total_likes = $count_likes->rowCount();
+
+   $count_comments = $conn->prepare("SELECT * FROM `comments` WHERE tutor_id = ?");
+   $count_comments->execute([$tutor_id]);
+   $total_comments = $count_comments->rowCount();
+
+}else{
+   header('location:teachers.php');
+}
 
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -28,7 +47,7 @@ $total_bookmarked = $select_bookmark->rowCount();
    <meta charset="UTF-8">
    <meta http-equiv="X-UA-Compatible" content="IE=edge">
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>home</title>
+   <title>tutor's profile</title>
 
    <!-- font awesome cdn link  -->
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
@@ -41,66 +60,39 @@ $total_bookmarked = $select_bookmark->rowCount();
 
 <?php include 'components/user_header.php'; ?>
 
-<!-- quick select section starts  -->
+<!-- teachers profile section starts  -->
 
-<section class="quick-select">
+<section class="tutor-profile">
 
-   <h1 class="heading">quick options</h1>
+   <h1 class="heading">profile details</h1>
 
-   <div class="box-container">
-
-      <?php
-         if($user_id != ''){
-      ?>
-      <div class="box">
-         <h3 class="title">likes and comments</h3>
+   <div class="details">
+      <div class="tutor">
+         <img src="uploaded_files/<?= $fetch_tutor['image']; ?>" alt="">
+         <h3><?= $fetch_tutor['name']; ?></h3>
+         <span><?= $fetch_tutor['profession']; ?></span>
+      </div>
+      <div class="flex">
+         <p>total playlists : <span><?= $total_playlists; ?></span></p>
+         <p>total videos : <span><?= $total_contents; ?></span></p>
          <p>total likes : <span><?= $total_likes; ?></span></p>
-         <a href="likes.php" class="inline-btn">view likes</a>
          <p>total comments : <span><?= $total_comments; ?></span></p>
-         <a href="comments.php" class="inline-btn">view comments</a>
-         <p>saved playlist : <span><?= $total_bookmarked; ?></span></p>
-         <a href="bookmark.php" class="inline-btn">view bookmark</a>
       </div>
-      <?php
-         }else{ 
-      ?>
-      <div class="box" style="text-align: center;">
-         <h3 class="title">please login or register</h3>
-          <div class="flex-btn" style="padding-top: .5rem;">
-            <a href="login.php" class="option-btn">login</a>
-            <a href="register.php" class="option-btn">register</a>
-         </div>
-      </div>
-      <?php
-      }
-      ?>
-
-
-    
-
-      <div class="box tutor">
-         <h3 class="title">become a tutor</h3>
-      
-         <a href="admin/register.php" class="inline-btn">get started</a>
-      </div>
-
    </div>
 
 </section>
 
-<!-- quick select section ends -->
-
-<!-- courses section starts  -->
+<!-- teachers profile section ends -->
 
 <section class="courses">
 
-   <h1 class="heading">latest courses</h1>
+   <h1 class="heading">latest courese</h1>
 
    <div class="box-container">
 
       <?php
-         $select_courses = $conn->prepare("SELECT * FROM `playlist` WHERE status = ? ORDER BY date DESC LIMIT 6");
-         $select_courses->execute(['active']);
+         $select_courses = $conn->prepare("SELECT * FROM `playlist` WHERE tutor_id = ? AND status = ?");
+         $select_courses->execute([$tutor_id, 'active']);
          if($select_courses->rowCount() > 0){
             while($fetch_course = $select_courses->fetch(PDO::FETCH_ASSOC)){
                $course_id = $fetch_course['id'];
@@ -130,10 +122,6 @@ $total_bookmarked = $select_bookmark->rowCount();
 
    </div>
 
-   <div class="more-btn">
-      <a href="courses.php" class="inline-option-btn">view more</a>
-   </div>
-
 </section>
 
 <!-- courses section ends -->
@@ -147,11 +135,7 @@ $total_bookmarked = $select_bookmark->rowCount();
 
 
 
-
-
-<!-- footer section starts  -->
-<?php include 'components/footer.php'; ?>
-<!-- footer section ends -->
+<?php include 'components/footer.php'; ?>    
 
 <!-- custom js file link  -->
 <script src="js/script.js"></script>
